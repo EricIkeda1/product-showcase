@@ -21,123 +21,180 @@ Depois é só abrir a URL que o Vite mostrar no terminal
 (normalmente http://localhost:5173)
 
 ## Seção 2: Decisões de design
-Por que escolhi essa estrutura de pastas?
 
-Eu tentei deixar tudo bem separado pra facilitar manutenção e crescimento do projeto:
+### Por que escolhi essa estrutura de pastas?
 
-pages/ -> Telas principais (Home e Detalhes)
+A organização do projeto foi pensada para facilitar a manutenção e permitir o crescimento sustentável da aplicação. A estrutura ficou assim:
 
-components/ -> Componentes reaproveitáveis (Card, Loader, barra do time)
+- **`pages/`** - Telas principais da aplicação (Home e Detalhes)
+- **`components/`** - Componentes reutilizáveis como `Card`, `Loader` e a barra do time
+- **`api/`** - Camada de serviço com chamadas HTTP via `axios`, separada da interface
+- **`types/`** - Tipagens TypeScript baseadas nos dados da PokeAPI
+- **`utils/`** - Funções auxiliares para extrair ID, montar URLs de imagem oficial e gerenciar cache
+- **`context/`** - Context API para gerenciar o estado global do "Time Pokémon" (favoritos)
 
-api/ -> Serviço de chamadas HTTP com axios (separado da UI)
+Essa separação clara entre lógica de negócio e interface torna o projeto mais escalável e fácil de dar manutenção.
 
-types/ -> Tipagens do que uso da PokeAPI
+---
 
-utils/ -> Funções auxiliares (extrair ID, montar imagem oficial e cache)
+### Maior dificuldade e como resolvi
 
-context/ -> Context API para gerenciar o “Time Pokémon” (favoritos)
+O maior desafio técnico foi lidar com a lista inicial de Pokémons.  
+O endpoint da PokeAPI que retorna a lista não fornece imagens diretamente, apenas o nome e a URL para os detalhes de cada Pokémon.  
 
-Essa separação ajuda a evitar misturar lógica de negócio com interface e deixa o projeto escalável.
-
-
-Maior dificuldade e como resolvi
-
-A parte mais chatinha foi a lista inicial:
-O endpoint que lista os pokémons não retorna imagem — apenas nome e URL do detalhe.
-
-Exemplo:
-
+Exemplo de retorno:
+```
 https://pokeapi.co/api/v2/pokemon/1/
+```
 
-Pra resolver isso:
+**Solução:**  
+Extraí o ID do Pokémon a partir da URL fornecida e, com ele, montei dinamicamente a URL da imagem oficial (`official artwork`).  
+Isso permitiu exibir as imagens corretamente sem precisar disparar uma requisição extra para cada item da lista.
 
-Extraí o ID do Pokémon pela URL
+---
 
-Usei esse ID para montar a URL do official artwork
+### Outro obstáculo: o layout dos cards
 
-Isso permitiu exibir imagens sem precisar fazer requisição extra para cada item.
+O comportamento padrão do CSS Grid acabava "espremendo" os cards em telas menores.  
+Para contornar isso, configurei o grid com:
 
-Outra dificuldade foi o layout dos cards.
+- Colunas automáticas (`auto-fit`)
+- Largura fixa por card
 
-O grid padrão acabava “espremendo” os cards dependendo da tela, então ajustei para:
+Com isso, o layout ficou consistente em diferentes tamanhos de tela, mantendo a organização visual esperada.
 
-Colunas automáticas
+---
 
-Largura fixa por card
+## Funcionalidades implementadas
 
-Assim o layout fica consistente.
+### Filtro (client-side)
 
-Funcionalidades implementadas
-Filtro (Client-side)
+Na página inicial, há um campo de busca que filtra a lista de Pokémons por nome.  
+O filtro é aplicado no cliente com o hook `useMemo`, garantindo que o processamento só ocorra quando necessário — evitando recálculos desnecessários a cada renderização.
 
-Na Home existe um campo de busca que filtra a lista de Pokémon por nome.
+---
 
-O filtro:
+### Time Pokémon (favoritos com Context API)
 
-é feito no cliente
+Criei um sistema de favoritos utilizando a Context API, com as seguintes funcionalidades:
 
-usa useMemo
+- Adicionar Pokémons ao time (limite de 6)
+- Remover individualmente
+- Limpar todo o time
+- Time salvo no `localStorage` para persistência
+- Barra fixa exibindo os favoritos em todas as telas
 
-evita processamento desnecessário a cada render
+---
 
-Time Pokémon (Favoritos com Context API)
+### Cache da API
 
-Implementei um sistema de favoritos usando Context API.
+Para evitar chamadas desnecessárias à API, implementei um cache simples baseado em:
 
-Funcionalidades:
+- `localStorage`
+- TTL (tempo de expiração)
 
-Permite favoritar até 6 Pokémons
+Esse cache é aplicado tanto na **lista de Pokémons** quanto nos **detalhes individuais**, garantindo melhor desempenho ao navegar ou recarregar a aplicação.
 
-Time é persistido com localStorage
+---
 
-Exibido em uma barra fixa no site
+### Atualização (refresh)
 
-Possível remover individualmente
+Na página Home, há um botão **Atualizar** que:
 
-Possível limpar todo o time
+- Limpa o cache da lista e dos detalhes
+- Refaz a requisição da lista
+- Revalida os favoritos (Time Pokémon)
 
-Cache da API
+Isso garante que os dados estejam sempre atualizados, mesmo com o cache ativo.
 
-Implementei cache simples usando:
+---
 
-localStorage
+## Melhorias que faria com mais tempo
 
-TTL (tempo de expiração)
+- **Skeleton loading** nos cards para melhorar a percepção de carregamento
+- **UI de erro padronizada** para feedback ao usuário
+- Melhorias de **acessibilidade** (como focus trap no modal e fechar com ESC)
+- Ícone de favorito direto no card
+- **Scroll infinito** ou paginação na listagem
+- **Testes automatizados** básicos para utilitários e serviços
+- Configuração de **Lint + Prettier** para padronização do código
+  
+Seção 3: Link para Deploy (Bônus)
+```
+https://projetopokedex-azure.vercel.app/
+```
 
-O cache é aplicado em:
+## Seção final: Recomendações
 
-Lista de Pokémons
+### Dicas que aprendi fazendo esse projeto
 
-Detalhes de cada Pokémon
+**1. Organiza as pastas antes de começar**
+No começo eu misturava tudo, mas aprendi que separar as coisas ajuda muito. Deixa pages/, components/, utils/ cada um no seu canto.
 
-Isso evita chamadas repetidas à API ao navegar ou recarregar a página.
+**2. API pública tem limites**
+A PokeAPI é legal mas se você ficar fazendo requisição toda hora pode ficar lento. Coloca um cache no localStorage que já ajuda.
 
-Atualização (Refresh)
+**3. Escolhe o gerenciamento de estado certo**
+Context API resolveu meu caso, mas se o projeto crescer muito talvez precise de algo mais forte.
 
-Existe um botão Atualizar na Home que:
+**4. Salva as coisas no navegador**
+O usuário gosta quando o time dele continua lá depois que atualiza a página. localStorage salva vidas.
 
-Limpa o cache da lista
+---
 
-Limpa o cache dos detalhes
+## Seção final: Recomendações
 
-Refaz o fetch da lista
+### Dicas para quem for fazer este desafio
 
-Revalida os favoritos (Time Pokémon)
+**1. Organize as pastas antes de começar**
+Separe pages/, components/, utils/ cada um no seu canto. Isso ajuda na manutenção.
 
-Isso garante que os dados fiquem atualizados mesmo com cache ativo.
+**2. Cuidado com requisições à API**
+A PokeAPI é pública mas muitas chamadas deixam lento. Use cache no localStorage.
 
-# Melhorias que eu faria com mais tempo
+**3. Escolha o gerenciamento de estado certo**
+Context API funciona bem, mas avalie outras opções se o projeto crescer.
 
-Skeleton loading nos cards
+**4. Persista dados importantes**
+Salvar o time no localStorage melhora a experiência do usuário.
 
-UI de erro mais padronizada
+**5. Teste em diferentes telas**
+Verifique se o layout não quebra no celular.
 
-Melhor acessibilidade (focus trap no modal + ESC para fechar)
+**6. Filtro simples resolve**
+UseMemo é suficiente, não precisa de biblioteca externa.
 
-Ícone de favorito direto no card
+---
 
-Scroll infinito ou paginação
+### Melhorias que podem ser feitas
 
-Testes básicos (utils e service)
+**Performance**
+- Virtualização da lista
+- Debounce no filtro
+- Lazy loading das imagens
 
-Lint + Prettier para padronização
+**Qualidade**
+- Testes unitários
+- ESLint + Prettier
+
+**Acessibilidade**
+- Navegação por teclado
+- Fechar modal com ESC
+
+**Experiência**
+- Skeleton loading
+- Mensagens de erro
+- Feedback visual
+
+---
+
+### Possíveis evoluções
+
+- Sistema de login
+- Tema escuro
+- Comparação entre Pokémons
+- Mais detalhes (habilidades, evoluções)
+- Tradução
+- Compartilhar time
+
+---
